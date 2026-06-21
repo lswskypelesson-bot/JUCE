@@ -296,7 +296,11 @@ public:
         }
 
         if (auto* bus = processor->getBus (true, 0))
+        {
             maxNumInputs = jmax (0, bus->getDefaultLayout().size());
+            if (bus->isNumberOfChannelsSupported (2))
+                maxNumInputs = jmax (maxNumInputs, 2);
+        }
 
         if (auto* bus = processor->getBus (false, 0))
             maxNumOutputs = jmax (0, bus->getDefaultLayout().size());
@@ -473,7 +477,7 @@ private:
                               0, maxAudioOutputChannels,
                               true,
                               (pluginHolder.processor.get() != nullptr && pluginHolder.processor->producesMidi()),
-                              true, false),
+                              false, false),
               shouldMuteLabel  ("Feedback Loop:", "Feedback Loop:"),
               shouldMuteButton ("Mute audio input")
         {
@@ -749,8 +753,11 @@ public:
        #if (! JUCE_IOS) && (! JUCE_ANDROID)
         if (auto* props = pluginHolder->settings.get())
         {
-            props->setValue ("windowX", getX());
-            props->setValue ("windowY", getY());
+            if (! isMinimised())
+            {
+                props->setValue ("windowX", getX());
+                props->setValue ("windowY", getY());
+            }
         }
        #endif
 
