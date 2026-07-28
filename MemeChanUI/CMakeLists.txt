@@ -19,6 +19,7 @@ target_sources(MemeChanUIRender PRIVATE
     Source/Theme.cpp
     Source/Widgets.cpp
     Source/HeroBanner.cpp
+    Source/Pages.cpp
     Source/MemeChanEditor.cpp
     Source/RenderMain.cpp)
 

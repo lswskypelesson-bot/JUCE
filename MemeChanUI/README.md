@@ -8,13 +8,14 @@ dropped straight into the plugin's `AudioProcessorEditor` later.
 ```
 cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j4
-./build/MemeChanUIRender_artefacts/Release/MemeChanUIRender preview.png 1.0
+./build/MemeChanUIRender_artefacts/Release/MemeChanUIRender . 1.0
 ```
 
-`MemeChanUIRender` paints the editor into a PNG without opening a window, so
-layout changes can be checked in a second or two instead of loading a host. On a
-headless box run it under `xvfb-run -a`. The second argument is a render scale —
-pass `2.0` for a HiDPI check.
+`MemeChanUIRender` paints every tab into a PNG (`preview-amp.png`,
+`preview-drive.png`, `preview-fx.png`, `preview-routing.png`) without opening a
+window, so layout changes can be checked in a second or two instead of loading a
+host. On a headless box run it under `xvfb-run -a`. The first argument is the
+output directory, the second a render scale — pass `2.0` for a HiDPI check.
 
 ## Files
 
@@ -23,8 +24,13 @@ pass `2.0` for a HiDPI check.
 | `Source/Theme.*` | Palette, typography, card/shadow helpers, placeholder icon paths |
 | `Source/Widgets.*` | `PawKnob`, `LevelMeter`, `FlatButton`, `SegmentedControl`, `TabStrip`, `FxChainStrip`, `WaveformView`, and the shared `LookAndFeel` |
 | `Source/HeroBanner.*` | The illustrated header, drawn procedurally |
-| `Source/MemeChanEditor.*` | Full layout — design size 1448 × 1086, scaled from a single factor |
+| `Source/Pages.*` | `PagePanel` plus the four tabs, described with `add*()` calls on a shared grid |
+| `Source/MemeChanEditor.*` | Frame layout — design size 1448 × 1086, scaled from a single factor |
 | `Source/RenderMain.cpp` | Offline PNG renderer |
+
+Pages lay themselves out in design units and the editor applies the window scale
+via `setTransform`, so page code never deals with scaling. Adding a tab is a
+`create*Page()` function plus an entry in the `TabStrip`.
 
 ## What is a placeholder
 
@@ -37,4 +43,7 @@ pass `2.0` for a HiDPI check.
   real faces needs a licence that permits it.
 * **Values.** Every control holds a static value. Nothing is connected to a
   processor yet — each one needs its `AudioProcessorValueTreeState` attachment.
-* **Pages.** Only the AMP tab is laid out. DRIVE / FX / ROUTING are empty.
+* **Controls on the DRIVE / FX / ROUTING tabs.** The AMP tab follows the
+  approved mock-up. The other three are a plausible guess at a NAM + IR signal
+  path so the tabs are not empty — treat the parameter names as a starting point
+  to argue with, not a spec.

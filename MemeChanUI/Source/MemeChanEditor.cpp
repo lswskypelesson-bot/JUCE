@@ -150,9 +150,7 @@ namespace
     public:
         HeroKnobPanel()
         {
-            const char* names[] = { "GAIN", "GT'S TONE", "LEVEL" };
-
-            for (auto* n : names)
+            for (auto* n : { "GAIN", "GT'S TONE", "LEVEL" })
             {
                 auto k = std::make_unique<LabelledKnob> (n, juce::Range<double> (0.0, 10.0),
                                                          5.0, oneDecimal, 84.0f);
@@ -192,12 +190,12 @@ MemeChanEditor::MemeChanEditor()
                      &filterButton, &gearButton })
         addAndMakeVisible (*b);
 
-    inputButton.setIconColour (colours::accent);
+    inputButton .setIconColour (colours::accent);
     filterButton.setIconColour (colours::textSecondary);
-    gearButton.setIconColour (colours::textSecondary);
+    gearButton  .setIconColour (colours::textSecondary);
 
-    inputCard  = std::make_unique<IOCard> ("INPUT",  true);
-    outputCard = std::make_unique<IOCard> ("OUTPUT", false);
+    inputCard     = std::make_unique<IOCard> ("INPUT",  true);
+    outputCard    = std::make_unique<IOCard> ("OUTPUT", false);
     heroKnobPanel = std::make_unique<HeroKnobPanel>();
 
     addAndMakeVisible (*inputCard);
@@ -210,88 +208,19 @@ MemeChanEditor::MemeChanEditor()
                                            { "FX",      fxTabIcon },
                                            { "ROUTING", routingTabIcon } },
                                        0);
+    tabs->onTabChange = [this] (int i) { showPage (i); };
     addAndMakeVisible (*tabs);
 
-    // --- AMP page -----------------------------------------------------------
-    ampModelBox.addItemList ({ "Saba Drive", "Katsuo Clean", "Maguro Lead", "Niboshi Crunch" }, 1);
-    ampModelBox.setSelectedId (1, juce::dontSendNotification);
-    addAndMakeVisible (ampModelBox);
+    pages.push_back (createAmpPage());
+    pages.push_back (createDrivePage());
+    pages.push_back (createFxPage());
+    pages.push_back (createRoutingPage());
 
-    for (auto* n : { "BASS", "MIDDLE", "TREBLE", "PRESENCE" })
-    {
-        auto k = std::make_unique<LabelledKnob> (n, juce::Range<double> (0.0, 10.0),
-                                                 5.0, oneDecimal, 56.0f);
-        addAndMakeVisible (*k);
-        eqKnobs.push_back (std::move (k));
-    }
+    for (auto& p : pages)
+        addChildComponent (*p);
 
-    noiseGateKnob = std::make_unique<LabelledKnob> (
-        "", juce::Range<double> (-80.0, 0.0), -60.0,
-        [] (double v) { return juce::String (v, 1) + " dB"; }, 56.0f);
-    addAndMakeVisible (*noiseGateKnob);
+    showPage (0);
 
-    addAndMakeVisible (calibrationWave);
-    addAndMakeVisible (calibrateButton);
-    addAndMakeVisible (pickupSelect);
-
-    bassCutSlider.setSliderStyle (juce::Slider::LinearHorizontal);
-    bassCutSlider.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
-    bassCutSlider.setRange (0.0, 200.0, 1.0);
-    bassCutSlider.setValue (0.0, juce::dontSendNotification);
-    addAndMakeVisible (bassCutSlider);
-
-    fxChain = std::make_unique<FxChainStrip> (std::vector<FxChainStrip::Item> {
-                                                  { "ROOM",     "45%", colours::accent },
-                                                  { "MONO DLY", "50%", juce::Colour (0xffe0a23b) },
-                                                  { "DELAY",    "50%", juce::Colour (0xff3bc0e0) },
-                                                  { "HALL",     "79%", juce::Colour (0xff8b5fe0) },
-                                                  { "DRY PAN",  "C",   juce::Colour (0xff3be08b) } },
-                                              false);
-    addAndMakeVisible (*fxChain);
-
-    struct FxSpec { const char* name; const char* value; double prop; bool on; };
-    const FxSpec fx[] = { { "ROOM",     "45.0 %", 0.45,  true  },
-                          { "MONO DLY", "50.0 %", 0.50,  false },
-                          { "DELAY",    "50.0 %", 0.50,  false },
-                          { "HALL",     "78.8 %", 0.788, true  },
-                          { "DRY PAN",  "C",      0.50,  false } };
-
-    for (const auto& f : fx)
-    {
-        auto cell = std::make_unique<FxKnobCell> (f.name, f.value, f.prop);
-        addAndMakeVisible (*cell);
-        fxCells.push_back (std::move (cell));
-
-        auto b = std::make_unique<FlatButton> (f.name, f.on ? FlatButton::Style::accentText
-                                                            : FlatButton::Style::plain);
-        b->setFontHeight (11.5f);
-        addAndMakeVisible (*b);
-        fxButtons.push_back (std::move (b));
-    }
-
-    for (int i = 0; i < 4; ++i)
-    {
-        auto b = std::make_unique<FlatButton> (juce::String::fromUTF8 ("\xe2\x80\xa2\xe2\x80\xa2\xe2\x80\xa2"),
-                                               FlatButton::Style::plain);
-        b->setFontHeight (11.0f);
-        addAndMakeVisible (*b);
-        fxButtons.push_back (std::move (b));
-    }
-
-    routeBox.addItemList ({ "Series", "Parallel" }, 1);
-    routeBox.setSelectedId (1, juce::dontSendNotification);
-    addAndMakeVisible (routeBox);
-
-    routingChain = std::make_unique<FxChainStrip> (std::vector<FxChainStrip::Item> {
-                                                       { "ROOM",     {}, {} },
-                                                       { "HALL",     {}, {} },
-                                                       { "DELAY",    {}, {} },
-                                                       { "MONO DLY", {}, {} },
-                                                       { "DRY PAN",  {}, {} } },
-                                                   true);
-    addAndMakeVisible (*routingChain);
-
-    // --- footer -------------------------------------------------------------
     oversamplingBox.addItemList ({ "Off", "Low", "High", "Ultra" }, 1);
     oversamplingBox.setSelectedId (3, juce::dontSendNotification);
     addAndMakeVisible (oversamplingBox);
@@ -308,6 +237,15 @@ MemeChanEditor::~MemeChanEditor()
     setLookAndFeel (nullptr);
 }
 
+void MemeChanEditor::showPage (int index)
+{
+    for (size_t i = 0; i < pages.size(); ++i)
+        pages[i]->setVisible ((int) i == index);
+
+    if (tabs != nullptr)
+        tabs->setSelectedTab (index);
+}
+
 //==============================================================================
 void MemeChanEditor::resized()
 {
@@ -321,7 +259,6 @@ void MemeChanEditor::resized()
                                      juce::roundToInt ((float) h * scale));
     };
 
-    // header
     presetBar   ->setBounds (R (560,  18, 296, 52));
     saveButton   .setBounds (R (878,  22,  82, 44));
     saveAsButton .setBounds (R (970,  22,  94, 44));
@@ -330,7 +267,6 @@ void MemeChanEditor::resized()
     filterButton .setBounds (R (1282, 22,  92, 44));
     gearButton   .setBounds (R (1384, 22,  44, 44));
 
-    // banner
     hero          .setBounds (R (22,   84, 1404, 436));
     inputCard    ->setBounds (R (32,  128,  168, 344));
     outputCard   ->setBounds (R (1248, 128, 168, 344));
@@ -338,41 +274,13 @@ void MemeChanEditor::resized()
 
     tabs->setBounds (R (22, 590, 1404, 54));
 
-    mainPanelBounds = { 22, 638, 1404, 390 };
-    routingBounds   = { 1102, 876, 306, 142 };
-
-    cards = { { { 40,   656, 330, 126 }, "AMP MODEL" },
-              { { 386,  656, 700, 126 }, "EQ" },
-              { { 1102, 656, 306, 126 }, "NOISE GATE" },
-              { { 40,   794, 546,  76 }, "INPUT CALIBRATION" },
-              { { 602,  794, 402,  76 }, "PICKUP" },
-              { { 1020, 794, 388,  76 }, "BASS CUT" } };
-
-    ampModelBox.setBounds (R (56, 700, 298, 40));
-
-    for (size_t i = 0; i < eqKnobs.size(); ++i)
-        eqKnobs[i]->setBounds (R (466 + (int) i * 148, 668, 148, 102));
-
-    noiseGateKnob->setBounds (R (1118, 676, 274, 94));
-
-    calibrationWave.setBounds (R (56,  822, 300, 32));
-    calibrateButton.setBounds (R (400, 820, 170, 36));
-    pickupSelect   .setBounds (R (618, 824, 370, 32));
-    bassCutSlider  .setBounds (R (1036, 822, 292, 32));
-
-    fxChain->setBounds (R (130, 882, 960, 40));
-
-    for (size_t i = 0; i < fxCells.size(); ++i)
-        fxCells[i]->setBounds (R (40 + (int) i * 210, 932, 200, 52));
-
-    for (size_t i = 0; i < 5; ++i)
-        fxButtons[i]->setBounds (R (40 + (int) i * 210, 990, 96, 28));
-
-    for (size_t i = 5; i < fxButtons.size(); ++i)
-        fxButtons[i]->setBounds (R (40 + (int) (i - 5) * 210 + 102, 990, 40, 28));
-
-    routeBox     .setBounds (R (1194, 916, 200, 32));
-    routingChain->setBounds (R (1122, 976, 266, 26));
+    // Pages lay themselves out in design units; the transform handles the
+    // window scale so page code never has to think about it.
+    for (auto& p : pages)
+    {
+        p->setBounds (mainPanelBounds);
+        p->setTransform (juce::AffineTransform::scale (scale));
+    }
 
     oversamplingBox.setBounds (R (146, 1042, 116, 30));
     presetInitBox  .setBounds (R (372, 1042,  92, 30));
@@ -387,8 +295,7 @@ void MemeChanEditor::paint (juce::Graphics& g)
     g.addTransform (juce::AffineTransform::scale (scale));
 
     paintTopBar (g);
-    paintCards (g);
-    paintRoutingBox (g);
+    drawCard (g, mainPanelBounds.toFloat(), 16.0f);
     paintBottomBar (g);
 }
 
@@ -412,59 +319,6 @@ void MemeChanEditor::paintTopBar (juce::Graphics& g)
     g.fillPath (sparkle ({ 486.0f, 28.0f }, 4.5f));
 }
 
-void MemeChanEditor::paintCards (juce::Graphics& g)
-{
-    drawCard (g, mainPanelBounds.toFloat(), 16.0f);
-
-    for (const auto& c : cards)
-    {
-        auto b = c.bounds.toFloat();
-        drawCard (g, b, 12.0f, colours::panelBg);
-
-        g.setColour (colours::textSecondary);
-        g.setFont (label (11.0f));
-        g.drawText (c.title, b.getX() + 16.0f, b.getY() + 12.0f, b.getWidth() - 32.0f, 15.0f,
-                    juce::Justification::centredLeft);
-    }
-
-    // amp-model watermark, stands in for the mascot artwork
-    {
-        drawCat (g, { 272.0f, 742.0f, 66.0f, 38.0f }, colours::catBlack.withAlpha (0.08f));
-    }
-
-    g.setColour (colours::textSecondary);
-    g.setFont (sans (12.5f, true));
-    g.drawText ("OFF", 1336, 806, 56, 52, juce::Justification::centredRight);
-
-    g.setColour (colours::textSecondary);
-    g.setFont (label (11.0f));
-    g.drawText ("FX CHAIN", 40, 882, 90, 40, juce::Justification::centredLeft);
-}
-
-void MemeChanEditor::paintRoutingBox (juce::Graphics& g)
-{
-    auto b = routingBounds.toFloat();
-    drawCard (g, b, 12.0f, colours::cardBg, colours::accent);
-
-    g.setColour (colours::textPrimary);
-    g.setFont (sans (13.5f, true));
-    g.drawText ("ROUTING", b.getX() + 16.0f, b.getY() + 12.0f, 160.0f, 16.0f,
-                juce::Justification::centredLeft);
-
-    g.setColour (colours::textSecondary);
-    g.setFont (label (11.0f));
-    g.drawText ("ROUTE", b.getX() + 16.0f, b.getY() + 44.0f, 70.0f, 20.0f,
-                juce::Justification::centredLeft);
-
-    drawCard (g, { b.getX() + 12.0f, b.getY() + 82.0f, b.getWidth() - 24.0f, 48.0f },
-              10.0f, colours::panelBg);
-
-    g.setColour (colours::textTertiary);
-    g.setFont (label (9.5f));
-    g.drawText ("FX CHAIN", b.getX() + 20.0f, b.getY() + 84.0f, 80.0f, 14.0f,
-                juce::Justification::centredLeft);
-}
-
 void MemeChanEditor::paintBottomBar (juce::Graphics& g)
 {
     g.setColour (juce::Colours::white);
@@ -478,7 +332,6 @@ void MemeChanEditor::paintBottomBar (juce::Graphics& g)
     g.drawText ("OVERSAMPLING", 30, 1028, 112, 58, juce::Justification::centredLeft);
     g.drawText ("PRESET INIT",  276, 1028,  92, 58, juce::Justification::centredLeft);
 
-    g.setColour (colours::textSecondary);
     g.fillPath (headphoneIcon ({ 986.0f, 1046.0f, 22.0f, 22.0f }));
     g.fillPath (smileyIcon    ({ 1042.0f, 1046.0f, 21.0f, 21.0f }));
 

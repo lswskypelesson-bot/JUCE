@@ -382,8 +382,21 @@ void TabStrip::paint (juce::Graphics& g)
 void TabStrip::mouseDown (const juce::MouseEvent& e)
 {
     const auto w = getWidth() / (int) tabs.size();
-    selectedIndex = juce::jlimit (0, (int) tabs.size() - 1, e.x / juce::jmax (1, w));
+    setSelectedTab (e.x / juce::jmax (1, w));
+}
+
+void TabStrip::setSelectedTab (int index)
+{
+    index = juce::jlimit (0, (int) tabs.size() - 1, index);
+
+    if (index == selectedIndex)
+        return;
+
+    selectedIndex = index;
     repaint();
+
+    if (onTabChange != nullptr)
+        onTabChange (selectedIndex);
 }
 
 //==============================================================================

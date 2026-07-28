@@ -1,7 +1,7 @@
 #pragma once
 
 #include "HeroBanner.h"
-#include "Widgets.h"
+#include "Pages.h"
 
 /*  Full editor layout for MemeChan Screaming!! DELUXE.
 
@@ -25,17 +25,12 @@ public:
     void paint (juce::Graphics&) override;
     void resized() override;
 
-private:
-    struct Card
-    {
-        juce::Rectangle<int> bounds;
-        juce::String title;
-    };
+    /** Switches tab; used by the offline renderer to capture every page. */
+    void showPage (int index);
 
+private:
     void paintTopBar (juce::Graphics&);
     void paintBottomBar (juce::Graphics&);
-    void paintCards (juce::Graphics&);
-    void paintRoutingBox (juce::Graphics&);
 
     MemeChanLookAndFeel lnf;
 
@@ -51,37 +46,18 @@ private:
     FlatButton gearButton   { "",       FlatButton::Style::plain, theme::gearIcon };
 
     // hero --------------------------------------------------------------
-    std::unique_ptr<juce::Component> inputCard, outputCard;
-    std::unique_ptr<juce::Component> heroKnobPanel;
+    std::unique_ptr<juce::Component> inputCard, outputCard, heroKnobPanel;
 
-    // tabs --------------------------------------------------------------
+    // body --------------------------------------------------------------
     std::unique_ptr<TabStrip> tabs;
-
-    // AMP page ----------------------------------------------------------
-    juce::ComboBox ampModelBox;
-    std::vector<std::unique_ptr<LabelledKnob>> eqKnobs;
-    std::unique_ptr<LabelledKnob> noiseGateKnob;
-
-    WaveformView calibrationWave;
-    FlatButton calibrateButton { "CALIBRATE", FlatButton::Style::outlined };
-    SegmentedControl pickupSelect { { "SINGLE COIL", "HUMBUCKER" }, 0 };
-    juce::Slider bassCutSlider;
-
-    std::unique_ptr<FxChainStrip> fxChain;
-    std::vector<std::unique_ptr<FxKnobCell>> fxCells;
-    std::vector<std::unique_ptr<FlatButton>> fxButtons;
-
-    juce::ComboBox routeBox;
-    std::unique_ptr<FxChainStrip> routingChain;
+    std::vector<std::unique_ptr<PagePanel>> pages;
 
     // footer ------------------------------------------------------------
     juce::ComboBox oversamplingBox, presetInitBox;
 
-    // geometry cached by resized() for paint() -----------------------------
-    // Cards are stored in design coordinates; paint() applies `scale`.
+    // geometry, in design units; paint() applies `scale`
     float scale = 1.0f;
-    juce::Rectangle<int> mainPanelBounds, routingBounds;
-    std::vector<Card> cards;
+    juce::Rectangle<int> mainPanelBounds { 22, 638, 1404, 390 };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MemeChanEditor)
 };

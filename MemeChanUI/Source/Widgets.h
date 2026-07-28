@@ -136,6 +136,11 @@ public:
     void paint (juce::Graphics&) override;
     void mouseDown (const juce::MouseEvent&) override;
 
+    void setSelectedTab (int index);
+    int getSelectedTab() const noexcept { return selectedIndex; }
+
+    std::function<void (int)> onTabChange;
+
 private:
     juce::Rectangle<float> boundsForTab (int index) const;
 
