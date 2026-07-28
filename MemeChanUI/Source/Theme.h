@@ -2,47 +2,37 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
-/*  Central palette, typography and a handful of shared drawing helpers.
+/*  Central palette, typography and shared drawing helpers.
 
-    Everything the UI draws goes through here, so re-skinning the plugin means
-    editing this file rather than hunting through the widgets.
+    Two skins are supported. `modern` is the flat, soft-shadow look; `comic` is
+    the riso/screentone print look - cream stock, heavy ink outlines, halftone
+    and a slight misregistration offset. Widgets do not branch on the skin
+    themselves: they read colours::* and call drawCard()/strokeWidth(), both of
+    which follow whatever skin is active.
 */
 namespace theme
 {
+    enum class Skin { modern, comic };
+
+    void setSkin (Skin);
+    Skin currentSkin() noexcept;
+
+    /** Outline weight for the active skin - 1px flat, 2.2px inked. */
+    float strokeWidth() noexcept;
+
     namespace colours
     {
-        const juce::Colour windowBg     { 0xfff5f5f7 };
-        const juce::Colour cardBg       { 0xffffffff };
-        const juce::Colour cardBorder   { 0xffe4e6ea };
-        const juce::Colour panelBg      { 0xfffbfbfc };
-
-        const juce::Colour textPrimary  { 0xff191c22 };
-        const juce::Colour textSecondary{ 0xff8f959f };
-        const juce::Colour textTertiary { 0xffb6bbc4 };
-
-        const juce::Colour accent       { 0xff3b5fe0 };
-        const juce::Colour accentHover  { 0xff2f4fc7 };
-        const juce::Colour accentSoft   { 0xffe9effc };
-
-        const juce::Colour heroBlue     { 0xff5385d8 };
-        const juce::Colour heroBlueDeep { 0xff3f6cc4 };
-        const juce::Colour heroStreak   { 0xffc9dcf5 };
-        const juce::Colour heroPaper    { 0xfffcfaf4 };
-
-        const juce::Colour knobRimHi    { 0xfffefdfa };
-        const juce::Colour knobRimLo    { 0xffd4cec1 };
-        const juce::Colour knobFaceHi   { 0xff4a3b31 };
-        const juce::Colour knobFaceLo   { 0xff0d0a09 };
-
-        const juce::Colour meterTrack   { 0xffe8eaee };
-        const juce::Colour meterLo      { 0xff6f8ef0 };
-        const juce::Colour meterHi      { 0xff3b5fe0 };
-
-        const juce::Colour catBlack     { 0xff17181c };
+        extern juce::Colour windowBg, cardBg, cardBorder, panelBg;
+        extern juce::Colour textPrimary, textSecondary, textTertiary;
+        extern juce::Colour accent, accentHover, accentSoft;
+        extern juce::Colour heroBlue, heroBlueDeep, heroStreak, heroPaper;
+        extern juce::Colour knobRimHi, knobRimLo, knobFaceHi, knobFaceLo;
+        extern juce::Colour meterTrack, meterLo, meterHi;
+        extern juce::Colour catBlack;
     }
 
-    /** Latin UI face. The mock uses an Inter-like grotesque; this box only has
-        Liberation Sans, so that is what the render uses. */
+    /** Latin UI face. The mock-ups use an Inter-like grotesque; this box only
+        has Liberation Sans, so that is what the render uses. */
     juce::Font sans (float height, bool bold = false, bool italic = false);
 
     /** Japanese face - IPAGothic is the only CJK family available here. */
@@ -51,17 +41,30 @@ namespace theme
     /** Small all-caps section labels ("AMP MODEL", "EQ", ...). */
     juce::Font label (float height);
 
-    /** White card with a hairline border and a soft drop shadow. */
+    /** Panel background: soft shadow under the modern skin, inked outline and
+        offset plate under the comic skin. */
     void drawCard (juce::Graphics&, juce::Rectangle<float> bounds, float corner = 12.0f,
-                   juce::Colour fill = colours::cardBg,
-                   juce::Colour border = colours::cardBorder);
+                   juce::Colour fill = {}, juce::Colour border = {});
+
+    /** Rounded rectangle with the corners and edges nudged off true, so an
+        outline reads as drawn rather than generated. */
+    juce::Path roughRoundedRect (juce::Rectangle<float>, float corner,
+                                 float jitter, int seed);
+
+    /** Screentone. `spacing` is dot pitch, `radius` dot size. */
+    void halftone (juce::Graphics&, juce::Rectangle<float> area, juce::Colour,
+                   float spacing, float radius, float angleRadians = 0.0f);
+
+    /** Tiled paper grain, cached after the first call. Draws nothing under the
+        modern skin. */
+    void paperGrain (juce::Graphics&, juce::Rectangle<float> area);
 
     /** Fills text as a path so it can be given extra weight / slant, which the
         available fonts cannot provide on their own. */
     void drawWeightedText (juce::Graphics&, const juce::String& text, const juce::Font&,
                            juce::Rectangle<float> area, juce::Justification,
                            juce::Colour fill, float extraWeight = 0.0f,
-                           float shear = 0.0f);
+                           float shear = 0.0f, juce::Colour outline = {});
 
     /** Placeholder cat mark, stands in for the logo artwork. */
     void drawCat (juce::Graphics&, juce::Rectangle<float> area, juce::Colour);
@@ -75,5 +78,6 @@ namespace theme
     juce::Path waveIcon (juce::Rectangle<float> area);
     juce::Path headphoneIcon (juce::Rectangle<float> area);
     juce::Path smileyIcon (juce::Rectangle<float> area);
+    juce::Path boltIcon (juce::Rectangle<float> area);
     juce::Path sparkle (juce::Point<float> centre, float radius);
 }

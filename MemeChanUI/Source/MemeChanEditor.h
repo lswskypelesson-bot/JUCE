@@ -23,6 +23,7 @@ public:
     ~MemeChanEditor() override;
 
     void paint (juce::Graphics&) override;
+    void paintOverChildren (juce::Graphics&) override;
     void resized() override;
 
     /** Switches tab; used by the offline renderer to capture every page. */

@@ -15,13 +15,18 @@ MemeChanLookAndFeel::MemeChanLookAndFeel()
 void MemeChanLookAndFeel::drawComboBox (juce::Graphics& g, int width, int height, bool,
                                         int, int, int, int, juce::ComboBox& box)
 {
-    auto b = juce::Rectangle<float> (0.0f, 0.0f, (float) width, (float) height).reduced (0.5f);
+    auto b = juce::Rectangle<float> (0.0f, 0.0f, (float) width, (float) height)
+                 .reduced (strokeWidth() * 0.5f);
+
+    const auto inked = currentSkin() == Skin::comic;
+    auto p = roughRoundedRect (b, 9.0f, inked ? 1.1f : 0.0f, width * 3 + height);
 
     g.setColour (box.findColour (juce::ComboBox::backgroundColourId));
-    g.fillRoundedRectangle (b, 9.0f);
+    g.fillPath (p);
 
     g.setColour (box.findColour (juce::ComboBox::outlineColourId));
-    g.drawRoundedRectangle (b, 9.0f, 1.0f);
+    g.strokePath (p, juce::PathStrokeType (strokeWidth(), juce::PathStrokeType::curved,
+                                           juce::PathStrokeType::rounded));
 
     auto arrow = juce::Rectangle<float> (11.0f, 7.0f)
                      .withCentre ({ b.getRight() - 18.0f, b.getCentreY() });
@@ -49,24 +54,35 @@ void MemeChanLookAndFeel::drawLinearSlider (juce::Graphics& g, int x, int y, int
 {
     const auto cy = (float) y + (float) height * 0.5f;
 
-    juce::Rectangle<float> track ((float) x, cy - 2.5f, (float) width, 5.0f);
+    const auto inked = currentSkin() == Skin::comic;
+
+    juce::Rectangle<float> track ((float) x, cy - 3.0f, (float) width, 6.0f);
     g.setColour (colours::meterTrack);
-    g.fillRoundedRectangle (track, 2.5f);
+    g.fillRoundedRectangle (track, 3.0f);
 
     g.setColour (colours::accent);
-    g.fillRoundedRectangle (track.withRight (sliderPos), 2.5f);
+    g.fillRoundedRectangle (track.withRight (sliderPos), 3.0f);
 
-    juce::Rectangle<float> thumb (16.0f, 16.0f);
+    if (inked)
+    {
+        g.setColour (colours::cardBorder);
+        g.drawRoundedRectangle (track, 3.0f, 1.4f);
+    }
+
+    juce::Rectangle<float> thumb (17.0f, 17.0f);
     thumb.setCentre (sliderPos, cy);
 
-    juce::Path p;
-    p.addEllipse (thumb);
-    juce::DropShadow (juce::Colour (0x33000000), 5, { 0, 1 }).drawForPath (g, p);
+    if (! inked)
+    {
+        juce::Path p;
+        p.addEllipse (thumb);
+        juce::DropShadow (juce::Colour (0x33000000), 5, { 0, 1 }).drawForPath (g, p);
+    }
 
-    g.setColour (juce::Colours::white);
+    g.setColour (inked ? colours::cardBg : juce::Colours::white);
     g.fillEllipse (thumb);
-    g.setColour (colours::textTertiary);
-    g.drawEllipse (thumb.reduced (0.5f), 1.0f);
+    g.setColour (inked ? colours::cardBorder : colours::textTertiary);
+    g.drawEllipse (thumb.reduced (strokeWidth() * 0.5f), strokeWidth());
 }
 
 //==============================================================================
@@ -84,24 +100,34 @@ void PawKnob::paint (juce::Graphics& g)
     const auto d = juce::jmin (b.getWidth(), b.getHeight());
     auto area = juce::Rectangle<float> (d, d).withCentre (b.getCentre());
 
-    juce::Path outline;
-    outline.addEllipse (area.reduced (1.0f));
-    juce::DropShadow (juce::Colour (0x26000000), 9, { 0, 3 }).drawForPath (g, outline);
+    const auto inked = currentSkin() == Skin::comic;
+
+    if (inked)
+    {
+        g.setColour (colours::cardBorder.withAlpha (0.22f));
+        g.fillEllipse (area.translated (3.0f, 3.5f));
+    }
+    else
+    {
+        juce::Path outline;
+        outline.addEllipse (area.reduced (1.0f));
+        juce::DropShadow (juce::Colour (0x26000000), 9, { 0, 3 }).drawForPath (g, outline);
+    }
 
     // ivory metal rim
     g.setGradientFill ({ colours::knobRimHi, area.getCentreX(), area.getY(),
                          colours::knobRimLo, area.getCentreX(), area.getBottom(), false });
     g.fillEllipse (area);
 
-    g.setColour (juce::Colour (0xffc3bcac));
-    g.drawEllipse (area.reduced (0.5f), 1.0f);
+    g.setColour (inked ? colours::cardBorder : juce::Colour (0xffc3bcac));
+    g.drawEllipse (area.reduced (strokeWidth() * 0.5f), strokeWidth());
 
     // photographic face (placeholder artwork)
     auto face = area.reduced (d * 0.155f);
     drawCurledCat (g, face);
 
-    g.setColour (juce::Colour (0x40000000));
-    g.drawEllipse (face, 1.0f);
+    g.setColour (inked ? colours::cardBorder : juce::Colour (0x40000000));
+    g.drawEllipse (face, inked ? strokeWidth() : 1.0f);
 
     // position indicator
     const auto rp = getRotaryParameters();
@@ -199,6 +225,12 @@ void LevelMeter::paint (juce::Graphics& g)
     g.setColour (colours::meterTrack);
     g.fillRoundedRectangle (bar, barW * 0.5f);
 
+    if (currentSkin() == Skin::comic)
+    {
+        g.setColour (colours::cardBorder);
+        g.drawRoundedRectangle (bar, barW * 0.5f, 1.4f);
+    }
+
     const auto toY = [&bar] (float db)
     {
         const auto prop = juce::jlimit (0.0f, 1.0f, (db + 60.0f) / 72.0f);
@@ -249,23 +281,26 @@ void FlatButton::paintButton (juce::Graphics& g, bool highlighted, bool)
         case Style::accentText: bg = colours::cardBg;    border = colours::cardBorder; fg = colours::accent;       break;
     }
 
+    const auto inked = currentSkin() == Skin::comic;
+    b = b.reduced (inked ? strokeWidth() * 0.5f : 0.0f);
+
+    auto p = roughRoundedRect (b, corner, inked ? 1.0f : 0.0f,
+                               juce::roundToInt (b.getX() * 5.0f + b.getWidth() * 3.0f));
+
     if (! bg.isTransparent())
     {
-        if (style != Style::ghost)
-        {
-            juce::Path p;
-            p.addRoundedRectangle (b, corner);
+        if (style != Style::ghost && ! inked)
             juce::DropShadow (juce::Colour (0x0d000000), 5, { 0, 1 }).drawForPath (g, p);
-        }
 
         g.setColour (highlighted ? bg.contrasting (0.04f) : bg);
-        g.fillRoundedRectangle (b, corner);
+        g.fillPath (p);
     }
 
     if (! border.isTransparent())
     {
         g.setColour (border);
-        g.drawRoundedRectangle (b, corner, 1.0f);
+        g.strokePath (p, juce::PathStrokeType (strokeWidth(), juce::PathStrokeType::curved,
+                                               juce::PathStrokeType::rounded));
     }
 
     const bool hasText = getButtonText().isNotEmpty();
@@ -296,13 +331,14 @@ SegmentedControl::SegmentedControl (juce::StringArray options, int selected)
 
 void SegmentedControl::paint (juce::Graphics& g)
 {
-    auto b = getLocalBounds().toFloat().reduced (0.5f);
+    auto b = getLocalBounds().toFloat().reduced (strokeWidth() * 0.5f);
     constexpr float corner = 9.0f;
 
+    const auto inked = currentSkin() == Skin::comic;
+    auto outer = roughRoundedRect (b, corner, inked ? 1.0f : 0.0f, getWidth() * 3 + getHeight());
+
     g.setColour (colours::cardBg);
-    g.fillRoundedRectangle (b, corner);
-    g.setColour (colours::cardBorder);
-    g.drawRoundedRectangle (b, corner, 1.0f);
+    g.fillPath (outer);
 
     const auto segW = b.getWidth() / (float) items.size();
 
@@ -314,13 +350,17 @@ void SegmentedControl::paint (juce::Graphics& g)
         if (on)
         {
             g.setColour (colours::accent);
-            g.fillRoundedRectangle (seg.reduced (1.0f), corner - 1.0f);
+            g.fillRoundedRectangle (seg.reduced (inked ? 1.6f : 1.0f), corner - 1.0f);
         }
 
-        g.setColour (on ? juce::Colours::white : colours::textSecondary);
+        g.setColour (on ? colours::cardBg : colours::textSecondary);
         g.setFont (sans (12.5f, true));
         g.drawText (items[i], seg, juce::Justification::centred);
     }
+
+    g.setColour (colours::cardBorder);
+    g.strokePath (outer, juce::PathStrokeType (strokeWidth(), juce::PathStrokeType::curved,
+                                               juce::PathStrokeType::rounded));
 }
 
 void SegmentedControl::mouseDown (const juce::MouseEvent& e)
@@ -342,15 +382,42 @@ juce::Rectangle<float> TabStrip::boundsForTab (int index) const
 
 void TabStrip::paint (juce::Graphics& g)
 {
-    g.setColour (colours::cardBorder);
-    g.fillRect (0.0f, (float) getHeight() - 1.0f, (float) getWidth(), 1.0f);
+    const auto inked = currentSkin() == Skin::comic;
+
+    if (! inked)
+    {
+        g.setColour (colours::cardBorder);
+        g.fillRect (0.0f, (float) getHeight() - 1.0f, (float) getWidth(), 1.0f);
+    }
 
     for (size_t i = 0; i < tabs.size(); ++i)
     {
         auto b = boundsForTab ((int) i);
         const bool on = ((int) i == selectedIndex);
 
-        if (on)
+        if (inked)
+        {
+            // separate inked plates; only the selected one runs into the panel
+            auto plate = b.reduced (5.0f, 0.0f).withTrimmedTop (2.0f);
+            juce::Path p;
+            p.addRoundedRectangle (plate.getX(), plate.getY(), plate.getWidth(),
+                                   plate.getHeight() + (on ? 14.0f : -6.0f), 11.0f, 11.0f,
+                                   true, true, ! on, ! on);
+
+            g.setColour (on ? colours::accent : colours::cardBg);
+            g.fillPath (p);
+            g.setColour (colours::cardBorder);
+            g.strokePath (p, juce::PathStrokeType (strokeWidth(), juce::PathStrokeType::curved,
+                                                   juce::PathStrokeType::rounded));
+
+            if (on)
+            {
+                g.setColour (colours::cardBg);
+                g.fillPath (boltIcon ({ plate.getRight() - 34.0f, plate.getCentreY() - 11.0f,
+                                        15.0f, 22.0f }));
+            }
+        }
+        else if (on)
         {
             juce::Path p;
             p.addRoundedRectangle (b.getX(), b.getY(), b.getWidth(), b.getHeight() + 12.0f,
@@ -359,7 +426,8 @@ void TabStrip::paint (juce::Graphics& g)
             g.fillPath (p);
         }
 
-        const auto fg = on ? juce::Colours::white : colours::textSecondary;
+        const auto fg = on ? colours::cardBg
+                           : (inked ? colours::textPrimary : colours::textSecondary);
         const auto textW = juce::GlyphArrangement::getStringWidth (sans (15.0f, true), tabs[i].name);
         const auto block = juce::Rectangle<float> (textW + 30.0f, b.getHeight())
                                .withCentre (b.getCentre());

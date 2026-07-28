@@ -59,18 +59,30 @@ int main (int argc, char** argv)
                        : juce::File::getCurrentWorkingDirectory().getChildFile (dirArg);
     dir.createDirectory();
 
-    MemeChanEditor editor;
-    editor.setSize (MemeChanEditor::designWidth, MemeChanEditor::designHeight);
-
     const char* pageNames[] = { "amp", "drive", "fx", "routing" };
 
-    for (int i = 0; i < juce::numElementsInArray (pageNames); ++i)
+    const struct { theme::Skin skin; const char* prefix; } skins[] =
     {
-        editor.showPage (i);
+        { theme::Skin::modern, "preview-" },
+        { theme::Skin::comic,  "preview-comic-" },
+    };
 
-        if (! renderTo (editor, dir.getChildFile (juce::String ("preview-")
-                                                      + pageNames[i] + ".png"), scale))
-            return 1;
+    for (const auto& s : skins)
+    {
+        // the palette is global, so the editor is rebuilt per skin
+        theme::setSkin (s.skin);
+
+        MemeChanEditor editor;
+        editor.setSize (MemeChanEditor::designWidth, MemeChanEditor::designHeight);
+
+        for (int i = 0; i < juce::numElementsInArray (pageNames); ++i)
+        {
+            editor.showPage (i);
+
+            if (! renderTo (editor, dir.getChildFile (juce::String (s.prefix)
+                                                          + pageNames[i] + ".png"), scale))
+                return 1;
+        }
     }
 
     return 0;

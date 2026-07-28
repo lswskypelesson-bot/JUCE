@@ -299,10 +299,32 @@ void MemeChanEditor::paint (juce::Graphics& g)
     paintBottomBar (g);
 }
 
+void MemeChanEditor::paintOverChildren (juce::Graphics& g)
+{
+    // paper stock sits on top of everything, as it would in print
+    juce::Graphics::ScopedSaveState save (g);
+    g.addTransform (juce::AffineTransform::scale (scale));
+
+    const juce::Rectangle<float> full (0.0f, 0.0f, (float) designWidth, (float) designHeight);
+    paperGrain (g, full);
+
+    if (currentSkin() == Skin::comic)
+    {
+        g.setColour (colours::cardBorder);
+        g.drawRect (full, 3.0f);
+    }
+}
+
 void MemeChanEditor::paintTopBar (juce::Graphics& g)
 {
-    g.setColour (juce::Colours::white);
+    g.setColour (colours::cardBg);
     g.fillRect (0, 0, designWidth, 88);
+
+    if (currentSkin() == Skin::comic)
+    {
+        g.setColour (colours::cardBorder);
+        g.fillRect (0.0f, 86.0f, (float) designWidth, 2.0f);
+    }
 
     drawCat (g, { 24.0f, 24.0f, 38.0f, 38.0f }, colours::catBlack);
 
@@ -321,11 +343,11 @@ void MemeChanEditor::paintTopBar (juce::Graphics& g)
 
 void MemeChanEditor::paintBottomBar (juce::Graphics& g)
 {
-    g.setColour (juce::Colours::white);
+    g.setColour (colours::cardBg);
     g.fillRect (0, 1028, designWidth, designHeight - 1028);
 
     g.setColour (colours::cardBorder);
-    g.fillRect (0.0f, 1028.0f, (float) designWidth, 1.0f);
+    g.fillRect (0.0f, 1028.0f, (float) designWidth, strokeWidth());
 
     g.setColour (colours::textSecondary);
     g.setFont (label (10.5f));

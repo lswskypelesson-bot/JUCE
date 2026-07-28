@@ -29,8 +29,19 @@ void HeroBanner::paint (juce::Graphics& g)
                      .withCentre ({ b.getX() + b.getWidth() * 0.235f,
                                     b.getCentreY() + b.getHeight() * 0.02f }));
 
-    g.setColour (juce::Colour (0x14ffffff));
-    g.drawRoundedRectangle (b.reduced (0.5f), 18.0f, 1.0f);
+    if (currentSkin() == Skin::comic)
+    {
+        halftone (g, b.withTop (b.getBottom() - 90.0f).withWidth (240.0f),
+                  colours::heroPaper.withAlpha (0.28f), 9.0f, 2.6f, 0.4f);
+
+        g.setColour (colours::cardBorder);
+        g.strokePath (clip, juce::PathStrokeType (strokeWidth() * 1.4f));
+    }
+    else
+    {
+        g.setColour (juce::Colour (0x14ffffff));
+        g.drawRoundedRectangle (b.reduced (0.5f), 18.0f, 1.0f);
+    }
 }
 
 void HeroBanner::paintSpeedLines (juce::Graphics& g, juce::Rectangle<float> b) const
@@ -62,7 +73,7 @@ void HeroBanner::paintSpeedLines (juce::Graphics& g, juce::Rectangle<float> b) c
         lines.closeSubPath();
     }
 
-    g.setColour (colours::heroStreak.withAlpha (0.55f));
+    g.setColour (colours::heroStreak.withAlpha (currentSkin() == Skin::comic ? 0.72f : 0.55f));
     g.fillPath (lines);
 }
 
@@ -89,40 +100,66 @@ void HeroBanner::paintBurst (juce::Graphics& g, juce::Rectangle<float> area) con
 
     burst.closeSubPath();
 
-    juce::DropShadow (juce::Colour (0x3a1c2f5e), 22, { 0, 6 }).drawForPath (g, burst);
+    const auto inked = currentSkin() == Skin::comic;
+
+    if (inked)
+    {
+        auto plate = burst;
+        plate.applyTransform (juce::AffineTransform::translation (6.0f, 7.0f));
+        g.setColour (colours::cardBorder.withAlpha (0.5f));
+        g.fillPath (plate);
+    }
+    else
+    {
+        juce::DropShadow (juce::Colour (0x3a1c2f5e), 22, { 0, 6 }).drawForPath (g, burst);
+    }
 
     g.setColour (colours::heroPaper);
     g.fillPath (burst);
 
-    g.setColour (juce::Colour (0xff1d2430).withAlpha (0.85f));
-    g.strokePath (burst, juce::PathStrokeType (2.2f, juce::PathStrokeType::curved,
+    g.setColour (inked ? colours::cardBorder : juce::Colour (0xff1d2430).withAlpha (0.85f));
+    g.strokePath (burst, juce::PathStrokeType (inked ? strokeWidth() * 1.5f : 2.2f,
+                                               juce::PathStrokeType::curved,
                                                juce::PathStrokeType::rounded));
 
-    // halftone dots, bottom right
-    g.setColour (colours::accent.withAlpha (0.55f));
+    // screentone in the lower right of the panel
+    if (inked)
+    {
+        // kept well inside the star so no dots land on the spikes
+        halftone (g, { centre.x + rx * 0.06f, centre.y + ry * 0.16f, rx * 0.52f, ry * 0.46f },
+                  colours::cardBorder.withAlpha (0.30f), 7.5f, 1.9f, 0.0f);
+    }
+    else
+    {
+        g.setColour (colours::accent.withAlpha (0.55f));
 
-    for (int row = 0; row < 3; ++row)
-        for (int col = 0; col < 4; ++col)
-            g.fillEllipse (centre.x + rx * 0.34f + (float) col * 11.0f,
-                           centre.y + ry * 0.34f + (float) row * 11.0f,
-                           4.5f, 4.5f);
+        for (int row = 0; row < 3; ++row)
+            for (int col = 0; col < 4; ++col)
+                g.fillEllipse (centre.x + rx * 0.34f + (float) col * 11.0f,
+                               centre.y + ry * 0.34f + (float) row * 11.0f,
+                               4.5f, 4.5f);
+    }
 }
 
 void HeroBanner::paintLogoText (juce::Graphics& g, juce::Rectangle<float> area) const
 {
     auto text = area.reduced (area.getWidth() * 0.14f, area.getHeight() * 0.18f);
 
+    const auto inked = currentSkin() == Skin::comic;
+    const auto ink = inked ? colours::cardBorder : juce::Colour();
+
     auto jpLine = text.removeFromTop (text.getHeight() * 0.40f);
     drawWeightedText (g, juce::String::fromUTF8 ("\xe3\x82\x81\xe3\x82\x81\xe3\x81\xa1\xe3\x82\x83\xe3\x82\x93"),
                       jp (jpLine.getHeight() * 0.92f), jpLine,
-                      juce::Justification::centred, colours::accent, 4.0f, -0.06f);
+                      juce::Justification::centred, colours::accent, 4.0f, -0.06f, ink);
 
     auto scream = text.removeFromTop (text.getHeight() * 0.58f);
     drawWeightedText (g, "Screaming!!", sans (scream.getHeight() * 0.92f, true, true), scream,
-                      juce::Justification::centred, juce::Colour (0xff14181f), 3.0f, -0.16f);
+                      juce::Justification::centred,
+                      inked ? colours::cardBorder : juce::Colour (0xff14181f), 3.0f, -0.16f);
 
     drawWeightedText (g, "DELUXE", sans (text.getHeight() * 0.86f, true, true), text,
-                      juce::Justification::centred, colours::accent, 1.4f, -0.16f);
+                      juce::Justification::centred, colours::accent, 1.4f, -0.16f, ink);
 
     // paw prints
     g.setColour (colours::accent.withAlpha (0.7f));
