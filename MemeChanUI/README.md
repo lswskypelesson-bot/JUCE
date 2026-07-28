@@ -32,6 +32,22 @@ Pages lay themselves out in design units and the editor applies the window scale
 via `setTransform`, so page code never deals with scaling. Adding a tab is a
 `create*Page()` function plus an entry in the `TabStrip`.
 
+## Skins
+
+`theme::setSkin()` swaps the whole palette. Widgets read `colours::*`,
+`theme::strokeWidth()` and `theme::strokeInked()` rather than branching on the
+skin themselves, so one call re-skins every page.
+
+The comic skin builds its look from `roughRoundedRect()` (hand-drawn wobble),
+`strokeInked()` (dry, broken outlines), `halftone()` (screentone) and
+`paperGrain()` (tiled stock). Erosion strength is one number —
+`theme::setInkBreakup()`, 0 for solid, ~0.5 for heavily broken.
+
+`strokeInked()` rebuilds its geometry on every call. That is fine for static
+chrome but should not run per frame, so anything animating (meters, waveforms)
+belongs in its own component, and panels that only redraw on resize should set
+`setBufferedToImage (true)`.
+
 ## What is a placeholder
 
 * **All artwork.** The cat, the comic burst, the speed lines and the knob faces

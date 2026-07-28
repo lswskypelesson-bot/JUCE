@@ -149,6 +149,54 @@ namespace theme
         return out;
     }
 
+    static float breakupAmount = 0.26f;
+
+    float inkBreakup() noexcept { return activeSkin == Skin::comic ? breakupAmount : 0.0f; }
+    void setInkBreakup (float v) noexcept { breakupAmount = juce::jlimit (0.0f, 0.6f, v); }
+
+    void strokeInked (juce::Graphics& g, const juce::Path& source, juce::Colour colour,
+                      float width, int seed, float amount)
+    {
+        const auto breakup = activeSkin == Skin::comic
+                               ? (amount < 0.0f ? breakupAmount : amount)
+                               : 0.0f;
+
+        g.setColour (colour);
+
+        if (breakup <= 0.0f)
+        {
+            g.strokePath (source, juce::PathStrokeType (width, juce::PathStrokeType::curved,
+                                                        juce::PathStrokeType::rounded));
+            return;
+        }
+
+        juce::Path out;
+        juce::PathStrokeType (width, juce::PathStrokeType::curved,
+                              juce::PathStrokeType::rounded).createStrokedPath (out, source);
+
+        // Erode the line by punching holes centred on it. Even-odd filling means
+        // two overlapping holes fill back in, which leaves the flecks of ink a
+        // half-inked line keeps in its gaps.
+        juce::Random rng (seed);
+        juce::PathFlatteningIterator it (source, {}, 10.0f);
+
+        while (it.next())
+        {
+            if (rng.nextFloat() > breakup)
+                continue;
+
+            const auto t = rng.nextFloat();
+            const auto x = it.x1 + (it.x2 - it.x1) * t;
+            const auto y = it.y1 + (it.y2 - it.y1) * t;
+            const auto r = width * (0.9f + rng.nextFloat() * 1.7f);
+
+            out.addEllipse (x - r, y - r * 0.85f, r * 2.0f, r * 1.7f);
+        }
+
+        out.setUsingNonZeroWinding (false);
+        g.fillPath (out);
+    }
+
     void halftone (juce::Graphics& g, juce::Rectangle<float> area, juce::Colour colour,
                    float spacing, float radius, float angleRadians)
     {
@@ -240,9 +288,7 @@ namespace theme
         g.setColour (fill);
         g.fillPath (p);
 
-        g.setColour (border);
-        g.strokePath (p, juce::PathStrokeType (strokeWidth(), juce::PathStrokeType::curved,
-                                               juce::PathStrokeType::rounded));
+        strokeInked (g, p, border, strokeWidth(), seed + 991);
     }
 
     //==========================================================================

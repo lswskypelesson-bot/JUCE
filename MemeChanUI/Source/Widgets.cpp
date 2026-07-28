@@ -24,9 +24,8 @@ void MemeChanLookAndFeel::drawComboBox (juce::Graphics& g, int width, int height
     g.setColour (box.findColour (juce::ComboBox::backgroundColourId));
     g.fillPath (p);
 
-    g.setColour (box.findColour (juce::ComboBox::outlineColourId));
-    g.strokePath (p, juce::PathStrokeType (strokeWidth(), juce::PathStrokeType::curved,
-                                           juce::PathStrokeType::rounded));
+    strokeInked (g, p, box.findColour (juce::ComboBox::outlineColourId), strokeWidth(),
+                 width * 17 + height);
 
     auto arrow = juce::Rectangle<float> (11.0f, 7.0f)
                      .withCentre ({ b.getRight() - 18.0f, b.getCentreY() });
@@ -119,15 +118,21 @@ void PawKnob::paint (juce::Graphics& g)
                          colours::knobRimLo, area.getCentreX(), area.getBottom(), false });
     g.fillEllipse (area);
 
-    g.setColour (inked ? colours::cardBorder : juce::Colour (0xffc3bcac));
-    g.drawEllipse (area.reduced (strokeWidth() * 0.5f), strokeWidth());
+    juce::Path rim;
+    rim.addEllipse (area.reduced (strokeWidth() * 0.5f));
+    strokeInked (g, rim, inked ? colours::cardBorder : juce::Colour (0xffc3bcac),
+                 strokeWidth(), juce::roundToInt (area.getX() * 7.0f + d) + 5, 0.16f);
 
     // photographic face (placeholder artwork)
     auto face = area.reduced (d * 0.155f);
     drawCurledCat (g, face);
 
-    g.setColour (inked ? colours::cardBorder : juce::Colour (0x40000000));
-    g.drawEllipse (face, inked ? strokeWidth() : 1.0f);
+    // the face ring is short and tight, so it takes much less erosion
+    juce::Path faceRing;
+    faceRing.addEllipse (face);
+    strokeInked (g, faceRing, inked ? colours::cardBorder : juce::Colour (0x40000000),
+                 inked ? strokeWidth() : 1.0f,
+                 juce::roundToInt (area.getY() * 9.0f + d) + 61, 0.10f);
 
     // position indicator
     const auto rp = getRotaryParameters();
@@ -297,11 +302,8 @@ void FlatButton::paintButton (juce::Graphics& g, bool highlighted, bool)
     }
 
     if (! border.isTransparent())
-    {
-        g.setColour (border);
-        g.strokePath (p, juce::PathStrokeType (strokeWidth(), juce::PathStrokeType::curved,
-                                               juce::PathStrokeType::rounded));
-    }
+        strokeInked (g, p, border, strokeWidth(),
+                     juce::roundToInt (b.getX() * 11.0f + b.getY() * 3.0f) + 41);
 
     const bool hasText = getButtonText().isNotEmpty();
     auto content = b.reduced (hasText ? 12.0f : 0.0f, 0.0f);
@@ -358,9 +360,7 @@ void SegmentedControl::paint (juce::Graphics& g)
         g.drawText (items[i], seg, juce::Justification::centred);
     }
 
-    g.setColour (colours::cardBorder);
-    g.strokePath (outer, juce::PathStrokeType (strokeWidth(), juce::PathStrokeType::curved,
-                                               juce::PathStrokeType::rounded));
+    strokeInked (g, outer, colours::cardBorder, strokeWidth(), getWidth() * 13 + 7);
 }
 
 void SegmentedControl::mouseDown (const juce::MouseEvent& e)
@@ -406,9 +406,7 @@ void TabStrip::paint (juce::Graphics& g)
 
             g.setColour (on ? colours::accent : colours::cardBg);
             g.fillPath (p);
-            g.setColour (colours::cardBorder);
-            g.strokePath (p, juce::PathStrokeType (strokeWidth(), juce::PathStrokeType::curved,
-                                                   juce::PathStrokeType::rounded));
+            strokeInked (g, p, colours::cardBorder, strokeWidth(), (int) i * 137 + 23);
 
             if (on)
             {

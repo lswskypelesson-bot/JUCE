@@ -310,8 +310,9 @@ void MemeChanEditor::paintOverChildren (juce::Graphics& g)
 
     if (currentSkin() == Skin::comic)
     {
-        g.setColour (colours::cardBorder);
-        g.drawRect (full, 3.0f);
+        juce::Path frame;
+        frame.addRectangle (full.reduced (1.5f));
+        strokeInked (g, frame, colours::cardBorder, 3.0f, 20260728);
     }
 }
 

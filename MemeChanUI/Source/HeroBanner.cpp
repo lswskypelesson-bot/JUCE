@@ -34,8 +34,7 @@ void HeroBanner::paint (juce::Graphics& g)
         halftone (g, b.withTop (b.getBottom() - 90.0f).withWidth (240.0f),
                   colours::heroPaper.withAlpha (0.28f), 9.0f, 2.6f, 0.4f);
 
-        g.setColour (colours::cardBorder);
-        g.strokePath (clip, juce::PathStrokeType (strokeWidth() * 1.4f));
+        strokeInked (g, clip, colours::cardBorder, strokeWidth() * 1.4f, 7717);
     }
     else
     {
@@ -117,10 +116,9 @@ void HeroBanner::paintBurst (juce::Graphics& g, juce::Rectangle<float> area) con
     g.setColour (colours::heroPaper);
     g.fillPath (burst);
 
-    g.setColour (inked ? colours::cardBorder : juce::Colour (0xff1d2430).withAlpha (0.85f));
-    g.strokePath (burst, juce::PathStrokeType (inked ? strokeWidth() * 1.5f : 2.2f,
-                                               juce::PathStrokeType::curved,
-                                               juce::PathStrokeType::rounded));
+    strokeInked (g, burst,
+                 inked ? colours::cardBorder : juce::Colour (0xff1d2430).withAlpha (0.85f),
+                 inked ? strokeWidth() * 1.5f : 2.2f, 3301);
 
     // screentone in the lower right of the panel
     if (inked)

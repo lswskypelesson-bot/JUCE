@@ -51,6 +51,23 @@ namespace theme
     juce::Path roughRoundedRect (juce::Rectangle<float>, float corner,
                                  float jitter, int seed);
 
+    /** How much of an outline the press failed to lay down, 0 (solid) to about
+        0.5 (heavily broken). Ignored by the modern skin. */
+    float inkBreakup() noexcept;
+    void setInkBreakup (float) noexcept;
+
+    /** Strokes a path as dry, broken ink: the line is eroded along its length
+        and leaves the odd speck behind in the gaps.
+
+        The result is pure geometry, so it stays sharp at any zoom - but it is
+        rebuilt on every call, so components using it should be buffered
+        (Component::setBufferedToImage) rather than repainted per frame.
+
+        Pass `amount` to override the global breakup for one shape - small
+        controls need less erosion than a full-width panel to read cleanly. */
+    void strokeInked (juce::Graphics&, const juce::Path& source, juce::Colour,
+                      float width, int seed, float amount = -1.0f);
+
     /** Screentone. `spacing` is dot pitch, `radius` dot size. */
     void halftone (juce::Graphics&, juce::Rectangle<float> area, juce::Colour,
                    float spacing, float radius, float angleRadians = 0.0f);
