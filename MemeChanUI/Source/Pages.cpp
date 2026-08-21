@@ -73,9 +73,8 @@ void PagePanel::addKnobRow (juce::Rectangle<int> card, juce::String title,
 {
     addCard (card, title);
 
-    // columns keep a sane width when a card holds fewer than four knobs
     auto area = card.reduced (16, 0).withTrimmedLeft (64);
-    const auto colW = juce::jmin (160, area.getWidth() / juce::jmax (1, names.size()));
+    const auto colW = area.getWidth() / juce::jmax (1, names.size());
 
     for (int i = 0; i < names.size(); ++i)
         own (std::make_unique<LabelledKnob> (names[i], juce::Range<double> (0.0, 10.0),
@@ -129,20 +128,6 @@ void PagePanel::addWaveButton (juce::Rectangle<int> card, juce::String title,
 
     own (std::make_unique<FlatButton> (buttonText, FlatButton::Style::outlined),
          { card.getX() + 360, card.getY() + 26, 170, 36 });
-}
-
-void PagePanel::addBlankCard (juce::Rectangle<int> card, juce::String title, juce::String note)
-{
-    addCard (card, title);
-
-    texts.push_back ({ card.withTrimmedTop (20), note, 13.0f, false, colours::textTertiary,
-                       juce::Justification::centred });
-}
-
-void PagePanel::addNote (juce::Rectangle<int> area, juce::String text, float size)
-{
-    texts.push_back ({ area, text, size, false, colours::textTertiary,
-                       juce::Justification::centredLeft });
 }
 
 //==============================================================================
@@ -227,32 +212,23 @@ void PagePanel::paint (juce::Graphics& g)
 }
 
 //==============================================================================
-/*  The six amp captures share one amp and differ only in the cabinet baked
-    into them, so the selector is a cab list, not an amp list. Names are
-    placeholders until the real .nam filenames are known. */
-static juce::StringArray cabCaptures()
-{
-    return { "JK Clean - IR 1", "JK Clean - IR 2", "JK Clean - IR 3",
-             "JK Clean - IR 4", "JK Clean - IR 5", "JK Clean - IR 6" };
-}
-
 std::unique_ptr<PagePanel> createAmpPage()
 {
     auto p = std::make_unique<PagePanel>();
 
-    // amp is fixed; the six captures differ only in the cab baked into them
-    p->addCombo (PagePanel::row1 (0), "CAB (BAKED IR)", cabCaptures(), 0);
-    p->addNote  ({ 34, 104, 300, 16 }, "amp: JK Clean - capture includes cab");
-    p->addCatWatermark ({ 262, 100, 60, 34 });
+    p->addCombo (PagePanel::row1 (0), "AMP MODEL",
+                 { "Saba Drive", "Katsuo Clean", "Maguro Lead", "Niboshi Crunch" }, 0);
+    p->addCatWatermark ({ 250, 104, 66, 38 });
 
-    p->addBlankCard (PagePanel::row1 (1), "EQ", "parked");
+    p->addKnobRow (PagePanel::row1 (1), "EQ",
+                   { "BASS", "MIDDLE", "TREBLE", "PRESENCE" }, { 5.0, 5.0, 5.0, 5.0 });
 
     p->addBigKnob (PagePanel::row1 (2), "NOISE GATE", -60.0, { -80.0, 0.0 },
                    [] (double v) { return juce::String (v, 1) + " dB"; });
 
     p->addWaveButton (PagePanel::row2 (0), "INPUT CALIBRATION", "CALIBRATE");
-    p->addBlankCard  (PagePanel::row2 (1), "PICKUP", "parked");
-    p->addBlankCard  (PagePanel::row2 (2), "BASS CUT", "filter off");
+    p->addSegmented  (PagePanel::row2 (1), "PICKUP", { "SINGLE COIL", "HUMBUCKER" }, 0);
+    p->addSlider     (PagePanel::row2 (2), "BASS CUT", 0.0, 200.0, "OFF");
 
     p->addFxSection ("FX CHAIN",
                      { { "ROOM",     "45%", fxDots[0] },
@@ -266,8 +242,8 @@ std::unique_ptr<PagePanel> createAmpPage()
                        { "HALL",     "78.8 %", 0.788, true  },
                        { "DRY PAN",  "C",      0.50,  false } });
 
-    p->addSideBox ("NAM CHAIN", "RATE", { "48 kHz", "44.1 kHz" }, 0, "STAGES",
-                   { "IN", "GATE", "OD", "AMP+IR", "OUT" });
+    p->addSideBox ("ROUTING", "ROUTE", { "Series", "Parallel" }, 0, "FX CHAIN",
+                   { "ROOM", "HALL", "DELAY", "MONO DLY", "DRY PAN" });
     return p;
 }
 
@@ -275,36 +251,34 @@ std::unique_ptr<PagePanel> createDrivePage()
 {
     auto p = std::make_unique<PagePanel>();
 
-    p->addCombo (PagePanel::row1 (0), "OD MODEL", { "OD_MIKE" }, 0);
-    p->addNote  ({ 34, 104, 300, 16 }, "runs into the amp capture");
-    p->addCatWatermark ({ 262, 100, 60, 34 });
+    p->addCombo (PagePanel::row1 (0), "PEDAL MODEL",
+                 { "Saba Screamer", "Katsuo Fuzz", "Niboshi Boost", "Maguro OD" }, 0);
+    p->addCatWatermark ({ 250, 104, 66, 38 });
 
-    // DRIVE and TONE are baked into the capture, so only the levels are live
-    p->addKnobRow (PagePanel::row1 (1), "OD", { "LEVEL", "MIX" }, { 5.5, 10.0 });
-    p->addNote    ({ 800, 30, 250, 16 }, "drive / tone fixed by the capture");
+    p->addKnobRow (PagePanel::row1 (1), "PEDAL",
+                   { "DRIVE", "TONE", "LEVEL", "MIX" }, { 6.5, 5.0, 5.5, 10.0 });
 
-    p->addBigKnob (PagePanel::row1 (2),
-                   juce::String::fromUTF8 ("OD \xe2\x86\x92 AMP"), 0.0, { -12.0, 12.0 },
-                   [] (double v) { return (v >= 0.0 ? "+" : "") + juce::String (v, 1) + " dB"; });
+    p->addBigKnob (PagePanel::row1 (2), "CLEAN BOOST", 3.0, { 0.0, 12.0 },
+                   [] (double v) { return "+" + juce::String (v, 1) + " dB"; });
 
-    p->addSegmented (PagePanel::row2 (0), "OD STAGE", { "ON", "BYPASS" }, 0);
-    p->addBlankCard (PagePanel::row2 (1), "DRIVE", "baked into capture");
-    p->addBlankCard (PagePanel::row2 (2), "TONE",  "baked into capture");
+    p->addSegmented (PagePanel::row2 (0), "PLACEMENT", { "BEFORE AMP", "AFTER AMP" }, 0);
+    p->addSegmented (PagePanel::row2 (1), "PEDAL POWER", { "9V", "18V" }, 0);
+    p->addSlider    (PagePanel::row2 (2), "LOW CUT", 80.0, 300.0, "80 Hz");
 
     p->addFxSection ("STACK",
-                     { { "IN",     "0dB",   fxDots[0] },
-                       { "GATE",   "-60dB", fxDots[1] },
-                       { "OD",     "ON",    fxDots[2] },
-                       { "AMP+IR", "IR 1",  fxDots[3] },
-                       { "OUT",    "0dB",   fxDots[4] } },
-                     { { "OD LEVEL", "55.0 %",  0.55, true  },
-                       { "OD MIX",   "100.0 %", 1.00, true  },
-                       { "STAGE",    "0.0 dB",  0.50, true  },
-                       { "GATE",     "-60 dB",  0.25, false },
-                       { "OUT",      "0.0 dB",  0.50, false } });
+                     { { "SCREAMER", "65%",   fxDots[0] },
+                       { "BOOST",    "30%",   fxDots[1] },
+                       { "GATE",     "-60dB", fxDots[2] },
+                       { "NAM",      "ON",    fxDots[3] },
+                       { "IR",       "ON",    fxDots[4] } },
+                     { { "DRIVE", "65.0 %",  0.65, true  },
+                       { "TONE",  "50.0 %",  0.50, false },
+                       { "LEVEL", "55.0 %",  0.55, false },
+                       { "MIX",   "100.0 %", 1.00, true  },
+                       { "BOOST", "30.0 %",  0.30, true  } });
 
-    p->addSideBox ("OD MODEL", "RATE", { "48 kHz", "44.1 kHz" }, 0, "LOADED",
-                   { "OD_MIKE", "48kHz", "READY" });
+    p->addSideBox ("ANTI-ALIAS", "MODE", { "2x", "4x", "8x" }, 1, "STAGE",
+                   { "PEDAL", "BOOST", "AMP", "IR", "OUT" });
     return p;
 }
 
@@ -347,34 +321,33 @@ std::unique_ptr<PagePanel> createRoutingPage()
 {
     auto p = std::make_unique<PagePanel>();
 
-    p->addCombo (PagePanel::row1 (0), "MODEL FOLDER", { "JK_clean" }, 0);
-    p->addNote  ({ 34, 104, 300, 16 }, "OD_MIKE + 6 cab captures");
-    p->addCatWatermark ({ 262, 100, 60, 34 });
+    p->addCombo (PagePanel::row1 (0), "ROUTE MODE",
+                 { "Series", "Parallel", "Split" }, 0);
+    p->addCatWatermark ({ 250, 104, 66, 38 });
 
-    p->addKnobRow (PagePanel::row1 (1), "LEVELS",
-                   { "IN", "OD", "AMP", "OUT" }, { 5.0, 5.5, 5.0, 5.0 });
+    p->addKnobRow (PagePanel::row1 (1), "BALANCE",
+                   { "A/B MIX", "WIDTH", "DRY", "WET" }, { 5.0, 5.0, 0.0, 10.0 });
 
     p->addBigKnob (PagePanel::row1 (2), "OUTPUT", 0.0, { -24.0, 24.0 },
                    [] (double v) { return juce::String (v, 1) + " dB"; });
 
-    p->addWaveButton (PagePanel::row2 (0), "CAPTURE SET", "RELOAD");
-    p->addSegmented  (PagePanel::row2 (1), "OD STAGE", { "ON", "BYPASS" }, 0);
-    // no separate convolution stage any more - the cab lives in the capture
-    p->addBlankCard  (PagePanel::row2 (2), "IR LOADER", "baked into capture");
+    p->addWaveButton (PagePanel::row2 (0), "IR FILE", "LOAD IR");
+    p->addSegmented  (PagePanel::row2 (1), "IR SLOT", { "A", "B" }, 0);
+    p->addSlider     (PagePanel::row2 (2), "IR LENGTH", 1024.0, 4096.0, "1024");
 
     p->addFxSection ("SIGNAL",
-                     { { "IN",     "0dB",   fxDots[0] },
-                       { "GATE",   "-60dB", fxDots[1] },
-                       { "OD",     "MIKE",  fxDots[2] },
-                       { "AMP+IR", "IR 1",  fxDots[3] },
-                       { "FX",     "79%",   fxDots[4] } },
-                     { { "IN",     "0.0 dB",  0.50, false },
-                       { "OD",     "ON",      0.55, true  },
-                       { "AMP+IR", "IR 1",    1.00, true  },
-                       { "FX",     "78.8 %",  0.788, false },
-                       { "OUT",    "0.0 dB",  0.50, false } });
+                     { { "PEDAL", "ON",     fxDots[0] },
+                       { "NAM",   "48kHz",  fxDots[1] },
+                       { "EQ",    "ON",     fxDots[2] },
+                       { "IR",    "A",      fxDots[3] },
+                       { "FX",    "79%",    fxDots[4] } },
+                     { { "PEDAL", "65.0 %",  0.65, true  },
+                       { "NAM",   "100.0 %", 1.00, true  },
+                       { "EQ",    "50.0 %",  0.50, false },
+                       { "IR",    "100.0 %", 1.00, true  },
+                       { "FX",    "78.8 %",  0.788, false } });
 
-    p->addSideBox ("NAM MODELS", "RATE", { "48 kHz", "44.1 kHz" }, 0, "CHAIN",
-                   { "OD_MIKE", "48kHz", "JK CLEAN", "IR 1", "READY" });
+    p->addSideBox ("NAM MODEL", "RATE", { "48 kHz", "44.1 kHz" }, 0, "STATUS",
+                   { "LOADED", "48kHz", "RESAMP", "IR A", "READY" });
     return p;
 }

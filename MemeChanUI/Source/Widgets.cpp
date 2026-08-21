@@ -286,13 +286,6 @@ void FlatButton::paintButton (juce::Graphics& g, bool highlighted, bool)
         case Style::accentText: bg = colours::cardBg;    border = colours::cardBorder; fg = colours::accent;       break;
     }
 
-    if (! isEnabled())
-    {
-        bg     = bg.withMultipliedAlpha (0.45f);
-        border = border.withMultipliedAlpha (0.35f);
-        fg     = fg.withMultipliedAlpha (0.35f);
-    }
-
     const auto inked = currentSkin() == Skin::comic;
     b = b.reduced (inked ? strokeWidth() * 0.5f : 0.0f);
 
@@ -321,8 +314,7 @@ void FlatButton::paintButton (juce::Graphics& g, bool highlighted, bool)
         auto iconArea = hasText ? content.removeFromLeft (iconSize + 7.0f)
                                          .withSizeKeepingCentre (iconSize, iconSize)
                                 : b.withSizeKeepingCentre (iconSize, iconSize);
-        auto ic = style == Style::filled ? juce::Colours::white : iconColour;
-        g.setColour (isEnabled() ? ic : ic.withMultipliedAlpha (0.35f));
+        g.setColour (style == Style::filled ? juce::Colours::white : iconColour);
         g.fillPath (iconFn (iconArea));
     }
 
