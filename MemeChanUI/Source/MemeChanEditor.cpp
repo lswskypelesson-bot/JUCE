@@ -194,6 +194,9 @@ MemeChanEditor::MemeChanEditor()
     filterButton.setIconColour (colours::textSecondary);
     gearButton  .setIconColour (colours::textSecondary);
 
+    // parked for now, along with the EQ and pickup sections
+    filterButton.setEnabled (false);
+
     inputCard     = std::make_unique<IOCard> ("INPUT",  true);
     outputCard    = std::make_unique<IOCard> ("OUTPUT", false);
     heroKnobPanel = std::make_unique<HeroKnobPanel>();

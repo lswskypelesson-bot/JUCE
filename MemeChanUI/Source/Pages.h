@@ -33,6 +33,15 @@ public:
     void            addWaveButton(juce::Rectangle<int> card, juce::String title,
                                   juce::String buttonText);
 
+    /** Card with its controls deliberately left out, for a section that is
+        parked rather than removed. */
+    void            addBlankCard (juce::Rectangle<int> card, juce::String title,
+                                  juce::String note);
+
+    /** Free-standing caption, e.g. a note under a control. */
+    void            addNote      (juce::Rectangle<int> area, juce::String text,
+                                  float size = 11.0f);
+
     //== the shared lower half ================================================
     void addFxSection (juce::String caption, std::vector<FxChainStrip::Item> chain,
                        std::vector<FxCellSpec> cells);
